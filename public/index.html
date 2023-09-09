@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bun real time chat app</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+      background-color: rgb(41, 41, 41);
+      color: #fff;
+    }
+
+    .chat-wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #fff;
+      min-height: 100vh;
+      height: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .message-input {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .message-input input {
+      width: 100%;
+    }
+
+    .message-input button {
+      width: 3rem;
+      padding: 0.5rem;
+    }
+
+    .chat-messages {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column-reverse;
+      box-sizing: border-box;
+      gap: 0.2rem;
+      padding-block: 0.4rem;
+      flex: 1;
+    }
+
+    .chat-messages .message {
+      width: 100%;
+      padding: 0.5rem;
+      box-sizing: border-box;
+      border-radius: 0.25rem;
+    }
+
+    .chat-messages .message:hover {
+      background-color: rgba(0,0,0, 0.1);
+    }
+
+    .chat-messages .message .name {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<div class="chat-wrap">
+  <div class="chat-messages"></div>
+  <div class="message-input">
+    <input type="text">
+    <button type="button">></button>
+  </div>
+</div>
+
+<template id="messageTemplate">
+  <div class="message">
+    <div class="name">You</div>
+    <div class="content">Some message content</div>
+  </div>
+</template>
+
+<script>
+  const messageTemplate = document.querySelector("#messageTemplate");
+  const messageList = document.querySelector(".chat-messages");
+
+  const messageInput = document.querySelector(".message-input input");
+
+  messageInput.addEventListener("keydown", async (event) => {
+    if (event.code !== "Enter") return;
+    const message = messageInput.value;
+    messageInput.value = "";
+    await sendMessage(message);
+  });
+
+  const messagesSource = new EventSource("/messages");
+  messagesSource.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    addMessage(data?.name, data?.content);
+  };
+
+  document.querySelector(".message-input button").addEventListener("click", async () => {
+    const message = messageInput.value;
+    messageInput.value = "";
+    await sendMessage(message);
+  });
+  
+  function addMessage(name, message) {
+    if (message.length === 0) return;
+    const messageElement = messageTemplate.content.cloneNode(true);
+    messageElement.querySelector(".message .name").innerText = name;
+    messageElement.querySelector(".message .content").innerText = message;
+    messageList.prepend(messageElement);
+  }
+
+  async function sendMessage(message) {
+    await fetch("/messages", {
+      method: "POST",
+      body: JSON.stringify({message: message})
+    });
+  }
+
+</script>
+
+</body>
+</html>
